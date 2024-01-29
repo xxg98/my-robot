@@ -147,11 +147,17 @@ async def create_chat_completion(request: ChatCompletionRequest):
                             do_sample=request.do_sample,
                             temperature=request.temperature,
                             top_p=request.top_p,
-                            max_new_tokens=request.max_tokens)  # 返回流式输出的结果
+                            max_new_tokens=request.max_tokens
+                           )  # 返回流式输出的结果
         return EventSourceResponse(generate, media_type="text/event-stream")  # 使用 EventSourceResponse 类来构造响应对象。
         # 客户端可以通过订阅该响应对象以接收服务器发送的事件流
     # 如果不是流式输出则直接输出全部response,
-    response, _ = model.chat(tokenizer, query, history=history)
+    response, _ = model.chat(tokenizer, query, history=history,
+                             do_sample=request.do_sample,
+                             temperature=request.temperature,
+                             top_p=request.top_p,
+                             max_new_tokens=request.max_tokens
+                             )
     choice_data = ChatCompletionResponseChoice(
         index=0,
         message=ChatMessage(role="assistant", content=response),
