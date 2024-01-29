@@ -1,0 +1,6 @@
+torch
+uvicorn
+pydantic
+fastapi
+transformers
+sse_starlette
