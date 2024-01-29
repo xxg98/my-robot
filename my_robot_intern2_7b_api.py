@@ -78,9 +78,10 @@ class DeltaMessage(BaseModel):
 class ChatCompletionRequest(BaseModel):
     model: str
     messages: List[ChatMessage]
+    do_sample: bool = True
     temperature: Optional[float] = None
     top_p: Optional[float] = None
-    max_length: Optional[int] = None
+    max_tokens: Optional[int] = None
     stream: Optional[bool] = False  # 当在ChatGPT API请求中设置stream为True时，API将会以流式的方式生成聊天响应。
     # 这意味着API会逐步生成聊天文本，并将其以流（stream）的形式发送给客户端。
     # 客户端可以从流中逐步读取响应，而不需要等待完整的响应返回
@@ -142,7 +143,11 @@ async def create_chat_completion(request: ChatCompletionRequest):
                 history.append([prev_messages[i].content, prev_messages[i + 1].content])
 
     if request.stream:  # 如何流式输出为True
-        generate = predict(query, history, request.model)  # 返回流式输出的结果
+        generate = predict(query, history, request.model,
+                            do_sample=request.do_sample,
+                            temperature=request.temperature,
+                            top_p=request.top_p,
+                            max_new_tokens=request.max_tokens)  # 返回流式输出的结果
         return EventSourceResponse(generate, media_type="text/event-stream")  # 使用 EventSourceResponse 类来构造响应对象。
         # 客户端可以通过订阅该响应对象以接收服务器发送的事件流
     # 如果不是流式输出则直接输出全部response,
@@ -156,7 +161,12 @@ async def create_chat_completion(request: ChatCompletionRequest):
     return ChatCompletionResponse(model=request.model, choices=[choice_data], object="chat.completion")
 
 
-async def predict(query: str, history: List[List[str]], model_id: str):
+async def predict(query: str, history: List[List[str]], model_id: str,
+                    do_sample: bool,
+                    temperature: float,
+                    top_p: float,
+                    max_new_tokens: int
+                  ):
     global model, tokenizer
 
     # 定义流式输出的设置
@@ -171,7 +181,7 @@ async def predict(query: str, history: List[List[str]], model_id: str):
 
     current_length = 0
     # 判断流式输出的文字长度
-    for new_response, _ in model.stream_chat(tokenizer, query, history):
+    for new_response, _ in model.stream_chat(tokenizer, query, history, do_sample=do_sample, temperature=temperature, top_p=top_p, max_new_tokens=max_new_tokens):
         if len(new_response) == current_length:  # 如果新响应的长度与当前长度相等，说明没有新的文本生成，继续下一次循环
             continue
 
@@ -199,8 +209,8 @@ async def predict(query: str, history: List[List[str]], model_id: str):
 
 
 if __name__ == "__main__":
-    tokenizer = AutoTokenizer.from_pretrained(r"internlm/internlm2-chat-7b", trust_remote_code=True)
-    model = AutoModelForCausalLM.from_pretrained(r"internlm/internlm2-chat-7b", device_map="auto",
+    tokenizer = AutoTokenizer.from_pretrained(r"/root/autodl-tmp/projects/LLM/merge-models/my-internlm2-chat-7b-4bit", trust_remote_code=True)
+    model = AutoModelForCausalLM.from_pretrained(r"/root/autodl-tmp/projects/LLM/merge-models/my-internlm2-chat-7b-4bit", device_map="auto",
                                                  trust_remote_code=True).eval()
 
-    uvicorn.run(app, host='0.0.0.0', port=8000, workers=1)
+    uvicorn.run(app, host='0.0.0.0', port=6006, workers=1)
