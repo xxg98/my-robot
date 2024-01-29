@@ -4,3 +4,8 @@ pydantic
 fastapi
 transformers
 sse_starlette
+sentencepiece
+einops
+accelerate
+auto-gptq
+optimum
