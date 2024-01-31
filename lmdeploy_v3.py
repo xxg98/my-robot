@@ -169,13 +169,14 @@ async def create_chat_completion(request: ChatCompletionRequest):
         "role": "user",
         "content": query
     }
+    prompts = None
     if len(history) == 0:
         msg_arr = []
         msg_arr.append(user_dict)
         prompts = history.append(msg_arr)
     else:
         prompts = history[0].append(user_dict)
-    print("问题：", prompts)
+    print("问题：", prompts, "history：", history)
     # 如果不是流式输出则直接输出全部response,
     response = pipe(prompts,
                 gen_config=gen_config)
@@ -215,12 +216,14 @@ async def predict(query: str, history: List[List[str]], model_id: str,
         "role": "user",
         "content": query
     }
+    prompts = None
     if len(history) == 0:
         msg_arr = []
         msg_arr.append(user_dict)
         prompts = history.append(msg_arr)
     else:
         prompts = history[0].append(user_dict)
+    print("问题：", prompts, "history：", history)
     # 判断流式输出的文字长度
     for new_response in pipe.stream_infer(prompts, gen_config=gen_config):
         if len(new_response) == current_length:  # 如果新响应的长度与当前长度相等，说明没有新的文本生成，继续下一次循环
@@ -252,7 +255,7 @@ async def predict(query: str, history: List[List[str]], model_id: str,
 if __name__ == "__main__":
     backend_config = TurbomindEngineConfig(tp=1, session_len=128000, rope_scaling_factor=2.0,
                                            cache_max_entry_count=0.15, use_logn_attn=1)
-    pipe = pipeline('internlm/internlm2-chat-7b',
+    pipe = pipeline('/home/yanyonghao/work/projects/internlm2-chat-7b',
                     backend_config=backend_config)
 
     uvicorn.run(app, host='0.0.0.0', port=6006, workers=1)
