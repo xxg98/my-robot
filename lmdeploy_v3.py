@@ -141,12 +141,14 @@ async def create_chat_completion(request: ChatCompletionRequest):
     if len(prev_messages) % 2 == 0:  # 确定prev_messages中除了system message还有其他消息
         for i in range(0, len(prev_messages), 2):
             if prev_messages[i].role == "user" and prev_messages[i + 1].role == "assistant":
-                user_msg = []
-                assistant_msg = []
-                user_msg.append(prev_messages[i])
-                assistant_msg.append(prev_messages[i + 1])
-                history.append(user_msg)
-                history.append(assistant_msg)
+                if len(history) == 0:
+                    total_msg = []
+                    total_msg.append(prev_messages[i])
+                    total_msg.append(prev_messages[i + 1])
+                    history.append(total_msg)
+                else:
+                    history[0].append(prev_messages[i])
+                    history[0].append(prev_messages[i + 1])
                 print("=====>历史对话:", history)
 
     if request.stream:  # 如何流式输出为True
@@ -163,19 +165,22 @@ async def create_chat_completion(request: ChatCompletionRequest):
                                   top_k=request.top_k,
                                   temperature=request.temperature,
                                   max_new_tokens=request.max_tokens)
-    user_msg = []
     user_dict = {
         "role": "user",
         "content": query
     }
-    user_msg.append(user_dict)
-    prompts = history.append(user_msg)
+    if len(history) == 0:
+        msg_arr = []
+        msg_arr.append(user_dict)
+        prompts = history.append(msg_arr)
+    else:
+        prompts = history[0].append(user_dict)
     # 如果不是流式输出则直接输出全部response,
     response = pipe(prompts,
                 gen_config=gen_config)
     choice_data = ChatCompletionResponseChoice(
         index=0,
-        message=ChatMessage(role="assistant", content=response),
+        message=ChatMessage(role="assistant", content=response.text),
         finish_reason="stop"
     )
 
@@ -205,13 +210,16 @@ async def predict(query: str, history: List[List[str]], model_id: str,
                                   top_k=top_k,
                                   temperature=temperature,
                                   max_new_tokens=max_new_tokens)
-    user_msg = []
     user_dict = {
         "role": "user",
         "content": query
     }
-    user_msg.append(user_dict)
-    prompts = history.append(user_msg)
+    if len(history) == 0:
+        msg_arr = []
+        msg_arr.append(user_dict)
+        prompts = history.append(msg_arr)
+    else:
+        prompts = history[0].append(user_dict)
     # 判断流式输出的文字长度
     for new_response in pipe.stream_infer(prompts, gen_config=gen_config):
         if len(new_response) == current_length:  # 如果新响应的长度与当前长度相等，说明没有新的文本生成，继续下一次循环
