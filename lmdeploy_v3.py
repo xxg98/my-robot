@@ -175,6 +175,7 @@ async def create_chat_completion(request: ChatCompletionRequest):
         prompts = history.append(msg_arr)
     else:
         prompts = history[0].append(user_dict)
+    print("问题：", prompts)
     # 如果不是流式输出则直接输出全部response,
     response = pipe(prompts,
                 gen_config=gen_config)
