@@ -169,13 +169,13 @@ async def create_chat_completion(request: ChatCompletionRequest):
         "role": "user",
         "content": query
     }
-    prompts = None
     if len(history) == 0:
         msg_arr = []
         msg_arr.append(user_dict)
-        prompts = history.append(msg_arr)
+        history.append(msg_arr)
     else:
-        prompts = history[0].append(user_dict)
+        history[0].append(user_dict)
+    prompts = history
     print("问题：", prompts, "history：", history)
     # 如果不是流式输出则直接输出全部response,
     response = pipe(prompts,
@@ -216,13 +216,13 @@ async def predict(query: str, history: List[List[str]], model_id: str,
         "role": "user",
         "content": query
     }
-    prompts = None
     if len(history) == 0:
         msg_arr = []
         msg_arr.append(user_dict)
-        prompts = history.append(msg_arr)
+        history.append(msg_arr)
     else:
-        prompts = history[0].append(user_dict)
+        history[0].append(user_dict)
+    prompts = history
     print("问题：", prompts, "history：", history)
     # 判断流式输出的文字长度
     for new_response in pipe.stream_infer(prompts, gen_config=gen_config):
